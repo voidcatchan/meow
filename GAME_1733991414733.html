@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Cat Chase - by VoidCat</title>
+    <style>
+        body {
+            background: #0a0a0f;
+            color: #8a8afe;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        #gameContainer {
+            text-align: center;
+            background: #13131f;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #2a2a4a;
+            box-shadow: 0 0 20px rgba(138, 138, 254, 0.2);
+        }
+        #gameGrid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(80px, 100px));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #1a1a2f;
+            border: 1px solid #3a3a6a;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .cell:hover {
+            background: #2a2a4f;
+            transform: scale(1.02);
+        }
+        .cell.active {
+            background: #4a4a8f;
+            animation: pulse 0.5s ease-in-out;
+        }
+        .cell.wrong {
+            background: #8f4a4a;
+            animation: shake 0.5s ease-in-out;
+        }
+        .cell::before {
+            content: '?';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            opacity: 0.3;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        button {
+            background: #2a2a4a;
+            color: #8a8afe;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+            font-size: 1em;
+            transition: all 0.2s;
+        }
+        button:hover:not(:disabled) {
+            background: #3a3a6a;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #stats {
+            margin-top: 20px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        #timer {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: #ff8a8a;
+        }
+        .cat-icon {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+        }
+        .cell.active .cat-icon {
+            display: block;
+        }
+        #howToPlay {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #6a6a8a;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h2>Quantum Cat Chase</h2>
+        <div>Balance: <span id="balance">1000</span> Credits</div>
+        <div>
+            <button onclick="setBet(10)" class="bet-btn">Bet 10</button>
+            <button onclick="setBet(50)" class="bet-btn">Bet 50</button>
+            <button onclick="setBet(100)" class="bet-btn">Bet 100</button>
+        </div>
+        <div>Current Bet: <span id="currentBet">10</span></div>
+        <div id="timer"></div>
+        <div id="gameGrid"></div>
+        <button id="startButton" onclick="startGame()">Start Round</button>
+        <div id="stats">
+            <div>Wins: <span id="wins">0</span></div>
+            <div>Losses: <span id="losses">0</span></div>
+        </div>
+        <div id="howToPlay">
+            Find the quantum cat within 3 seconds to win 3x your bet!
+        </div>
+    </div>
+    <script>
+        let balance = 1000;
+        let currentBet = 10;
+        let wins = 0;
+        let losses = 0;
+        let gameActive = false;
+        let voidCatPosition = -1;
+        let timerInterval;
+        let timeLeft;
+
+        const grid = document.getElementById('gameGrid');
+        const startButton = document.getElementById('startButton');
+        const timerDisplay = document.getElementById('timer');
+
+        for(let i = 0; i < 9; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.innerHTML = '<span class="cat-icon">🐱</span>';
+            cell.addEventListener('click', () => checkCell(i));
+            grid.appendChild(cell);
+        }
+
+        function setBet(amount) {
+            if(!gameActive && balance >= amount) {
+                currentBet = amount;
+                document.getElementById('currentBet').textContent = amount;
+                updateButtonStates();
+            }
+        }
+
+        function updateButtonStates() {
+            const betButtons = document.querySelectorAll('.bet-btn');
+            betButtons.forEach(btn => {
+                const betAmount = parseInt(btn.textContent.split(' ')[1]);
+                btn.disabled = balance < betAmount || gameActive;
+            });
+            startButton.disabled = balance < currentBet || gameActive;
+        }
+
+        function startTimer() {
+            timeLeft = 3;
+            updateTimer();
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                updateTimer();
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if(gameActive) endGame(false);
+                }
+            }, 100);
+        }
+
+        function updateTimer() {
+            timerDisplay.textContent = timeLeft.toFixed(1) + 's';
+        }
+
+        function startGame() {
+            if(gameActive || balance < currentBet) return;
+            gameActive = true;
+            balance -= currentBet;
+            updateDisplay();
+            updateButtonStates();
+            
+            const cells = document.getElementsByClassName('cell');
+            Array.from(cells).forEach(cell => {
+                cell.className = 'cell';
+            });
+
+            voidCatPosition = Math.floor(Math.random() * 9);
+            startTimer();
+        }
+
+        function endGame(won) {
+            clearInterval(timerInterval);
+            gameActive = false;
+            if(won) {
+                balance += currentBet * 3;
+                wins++;
+            } else {
+                losses++;
+            }
+            updateDisplay();
+            updateButtonStates();
+        }
+
+        function checkCell(index) {
+            if(!gameActive) return;
+            
+            const cells = document.getElementsByClassName('cell');
+            if(index === voidCatPosition) {
+                cells[index].className = 'cell active';
+                endGame(true);
+            } else {
+                cells[index].className = 'cell wrong';
+                cells[voidCatPosition].className = 'cell active';
+                endGame(false);
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('balance').textContent = balance;
+            document.getElementById('wins').textContent = wins;
+            document.getElementById('losses').textContent = losses;
+        }
+
+        updateButtonStates();
+    </script>
+</body>
+</html>
