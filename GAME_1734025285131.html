@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyanScratch by VoidCat</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #e6e6ff;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+        #game-container {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+            max-width: 95vw;
+        }
+        .scratch-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(80px, 100px));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .paw {
+            height: 100px;
+            background: #272640;
+            border: 2px solid #4a4e69;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .paw:not(.revealed):hover {
+            background: #323259;
+            transform: scale(1.05);
+        }
+        .paw.revealed {
+            background: #1b1b2f;
+            cursor: default;
+            animation: reveal 0.5s ease-out;
+        }
+        @keyframes reveal {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+        button {
+            background: #7b2cbf;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #4a4e69;
+            cursor: not-allowed;
+        }
+        #stats {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+        }
+        .how-to-play {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .win {
+            animation: winPulse 1s infinite;
+        }
+        @keyframes winPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h2>NyanScratch にゃ～</h2>
+        <div id="stats">
+            Balance: <span id="balance">1000</span> | Multiplier: <span id="multiplier">1.0</span>x
+        </div>
+        <div class="scratch-grid" id="grid"></div>
+        <div style="text-align: center">
+            <button id="bet-btn">Bet 100</button>
+            <button id="reset-btn" disabled>New Game</button>
+        </div>
+        <div class="how-to-play">
+            How to Play:
+            1. Click 'Bet 100' to start
+            2. Reveal 3 paws
+            3. Avoid 0x multipliers
+            4. Multiply your bet to win!
+        </div>
+    </div>
+    <script>
+        const game = {
+            balance: 1000,
+            currentBet: 100,
+            multiplier: 1.0,
+            revealed: 0,
+            gameActive: false,
+            pawValues: [],
+            
+            initGame() {
+                if (this.balance < this.currentBet) {
+                    alert("Insufficient balance!");
+                    return;
+                }
+                
+                this.gameActive = true;
+                this.revealed = 0;
+                this.multiplier = 1.0;
+                this.pawValues = [];
+                document.getElementById('bet-btn').disabled = true;
+                document.getElementById('reset-btn').disabled = true;
+                
+                const multipliers = [0, 0.5, 1.5, 2, 2.5, 3, 3.5, 4, 5];
+                const tempMultipliers = [...multipliers];
+                
+                for(let i = 0; i < 9; i++) {
+                    const randIndex = Math.floor(Math.random() * tempMultipliers.length);
+                    this.pawValues.push(tempMultipliers[randIndex]);
+                    tempMultipliers.splice(randIndex, 1);
+                }
+                
+                const grid = document.getElementById('grid');
+                grid.innerHTML = '';
+                for(let i = 0; i < 9; i++) {
+                    const paw = document.createElement('div');
+                    paw.className = 'paw';
+                    paw.innerHTML = '🐾';
+                    paw.addEventListener('click', () => this.revealPaw(i));
+                    paw.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        this.revealPaw(i);
+                    });
+                    grid.appendChild(paw);
+                }
+                this.updateStats();
+            },
+            
+            revealPaw(index) {
+                if(!this.gameActive) return;
+                
+                const paws = document.getElementsByClassName('paw');
+                if(paws[index].classList.contains('revealed')) return;
+                
+                paws[index].classList.add('revealed');
+                const multiplierDisplay = document.createElement('span');
+                multiplierDisplay.textContent = `${this.pawValues[index]}x`;
+                paws[index].innerHTML = '';
+                paws[index].appendChild(multiplierDisplay);
+                
+                this.multiplier *= this.pawValues[index];
+                this.revealed++;
+                
+                if(this.pawValues[index] === 0) {
+                    this.endGame(false);
+                } else if(this.revealed === 3) {
+                    this.endGame(true);
+                }
+                
+                this.updateStats();
+            },
+            
+            endGame(won) {
+                this.gameActive = false;
+                document.getElementById('reset-btn').disabled = false;
+                
+                if(won) {
+                    const winAmount = this.currentBet * this.multiplier;
+                    this.balance += winAmount;
+                    document.getElementById('multiplier').classList.add('win');
+                    setTimeout(() => {
+                        alert(`You won ${winAmount.toFixed(0)} coins!`);
+                        document.getElementById('multiplier').classList.remove('win');
+                    }, 300);
+                } else {
+                    this.balance -= this.currentBet;
+                    setTimeout(() => alert('Game Over! Better luck next time!'), 300);
+                }
+                
+                this.updateStats();
+            },
+            
+            updateStats() {
+                document.getElementById('balance').textContent = this.balance.toFixed(0);
+                document.getElementById('multiplier').textContent = this.multiplier.toFixed(1);
+            }
+        };
+        
+        document.getElementById('bet-btn').onclick = () => game.initGame();
+        document.getElementById('reset-btn').onclick = () => {
+            document.getElementById('bet-btn').disabled = false;
+            document.getElementById('reset-btn').disabled = true;
+        };
+    </script>
+</body>
+</html>
