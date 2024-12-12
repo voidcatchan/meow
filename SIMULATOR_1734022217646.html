@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VoidCat's Gacha Simulator</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .pull-button {
+            background: linear-gradient(45deg, #6b2cf5, #d245f9);
+            border: none;
+            padding: 15px 30px;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .stats {
+            margin: 20px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 5px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .ssr {color: #ffd700;}
+        .sr {color: #c0c0c0;}
+        .r {color: #cd7f32;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VoidCat's Gacha Simulator nyā~</h1>
+        <div class="stats">
+            <p>SSR Rate: 3% | SR Rate: 17% | R Rate: 80%</p>
+            <p>Pity Counter: <span id="pityCounter">0</span>/90</p>
+        </div>
+        <button class="pull-button" onclick="pull()">Pull</button>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        let pityCount = 0;
+        const rates = {SSR: 0.03, SR: 0.17, R: 0.80};
+
+        function pull() {
+            pityCount++;
+            let roll = Math.random();
+            let result;
+
+            if (pityCount >= 90 || roll < rates.SSR) {
+                result = "SSR";
+                pityCount = 0;
+            } else if (roll < rates.SSR + rates.SR) {
+                result = "SR";
+            } else {
+                result = "R";
+            }
+
+            document.getElementById('pityCounter').textContent = pityCount;
+            document.getElementById('result').innerHTML = 
+                `<span class="${result.toLowerCase()}">${result} Pull!</span>`;
+        }
+    </script>
+</body>
+</html>
