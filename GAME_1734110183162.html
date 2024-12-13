@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neko Crash by VoidCat</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        #game-container {
+            background: #2a2a2a;
+            border: 2px solid #4a4a4a;
+            border-radius: 10px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+        #multiplier {
+            font-size: 48px;
+            text-align: center;
+            color: #0f0;
+            text-shadow: 0 0 10px rgba(0,255,0,0.5);
+            transition: color 0.3s;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #4a4a4a;
+            border: none;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.3s;
+            font-size: 16px;
+            min-width: 120px;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        button:hover:not(:disabled) {
+            background: #5a5a5a;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #bet {
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid #4a4a4a;
+            background: #333;
+            color: white;
+            font-size: 16px;
+            width: 100px;
+            text-align: center;
+        }
+        #balance {
+            font-size: 24px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        #cat {
+            text-align: center;
+            font-size: 32px;
+            margin: 20px 0;
+            transition: transform 0.3s;
+        }
+        #cat.jump {
+            animation: jump 0.5s ease;
+        }
+        @keyframes jump {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        #how-to-play {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="balance">Balance: 1000 coins</div>
+        <div id="multiplier">1.00x</div>
+        <div id="cat">(=^･ω･^=)</div>
+        <div class="controls">
+            <input type="number" id="bet" value="100" min="1" max="1000">
+            <button id="start">Start Game</button>
+            <button id="cashout" disabled>Cash Out!</button>
+        </div>
+        <div id="how-to-play">
+            HOW TO PLAY:<br>
+            1. Enter your bet amount<br>
+            2. Click Start Game<br>
+            3. Watch the multiplier grow<br>
+            4. Cash out before the cat crashes!
+        </div>
+    </div>
+    <script>
+        let gameActive = false;
+        let currentMultiplier = 1;
+        let balance = 1000;
+        let currentBet = 0;
+        let crashTimeout;
+        let updateInterval;
+
+        const startBtn = document.getElementById('start');
+        const cashoutBtn = document.getElementById('cashout');
+        const betInput = document.getElementById('bet');
+        const multiplierDisplay = document.getElementById('multiplier');
+        const balanceDisplay = document.getElementById('balance');
+        const catDisplay = document.getElementById('cat');
+
+        function generateCrashPoint() {
+            return (Math.random() * 0.99 + 1.01).toFixed(2);
+        }
+
+        function updateGame() {
+            currentMultiplier = (currentMultiplier + 0.01).toFixed(2);
+            multiplierDisplay.textContent = currentMultiplier + 'x';
+            multiplierDisplay.style.color = `hsl(${120 - currentMultiplier * 10}, 100%, 50%)`;
+            if (currentMultiplier >= 2) {
+                catDisplay.classList.add('jump');
+            }
+        }
+
+        function crash() {
+            gameActive = false;
+            clearInterval(updateInterval);
+            multiplierDisplay.style.color = 'red';
+            catDisplay.textContent = '(×_×)';
+            catDisplay.classList.remove('jump');
+            startBtn.disabled = false;
+            cashoutBtn.disabled = true;
+            betInput.disabled = false;
+        }
+
+        function cashout() {
+            if (!gameActive) return;
+            const winnings = Math.floor(currentBet * currentMultiplier);
+            balance += winnings;
+            balanceDisplay.textContent = `Balance: ${balance} coins`;
+            clearTimeout(crashTimeout);
+            clearInterval(updateInterval);
+            gameActive = false;
+            startBtn.disabled = false;
+            cashoutBtn.disabled = true;
+            betInput.disabled = false;
+            catDisplay.textContent = '(^･o･^)ノ';
+            catDisplay.classList.remove('jump');
+        }
+
+        startBtn.addEventListener('click', () => {
+            currentBet = parseInt(betInput.value);
+            if (currentBet > balance || currentBet < 1) {
+                alert('Invalid bet amount!');
+                return;
+            }
+            
+            balance -= currentBet;
+            balanceDisplay.textContent = `Balance: ${balance} coins`;
+            gameActive = true;
+            currentMultiplier = 1.00;
+            startBtn.disabled = true;
+            cashoutBtn.disabled = false;
+            betInput.disabled = true;
+            catDisplay.textContent = '(=^･ω･^=)';
+            multiplierDisplay.style.color = '#0f0';
+
+            const crashPoint = generateCrashPoint();
+            crashTimeout = setTimeout(crash, crashPoint * 1000);
+            updateInterval = setInterval(updateGame, 50);
+        });
+
+        cashoutBtn.addEventListener('click', cashout);
+        
+        betInput.addEventListener('input', () => {
+            betInput.value = Math.min(Math.max(betInput.value, 1), balance);
+        });
+
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+    </script>
+</body>
+</html>
