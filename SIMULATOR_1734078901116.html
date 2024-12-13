@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { background: #1a1a1a; color: #fff; font-family: sans-serif; }
+        #container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .pull-btn { background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: none; padding: 15px 30px; border-radius: 25px;
+            color: white; cursor: pointer; font-size: 18px; }
+        .stats { margin: 20px 0; padding: 15px; background: #2a2a2a; }
+        .character { width: 150px; height: 200px; margin: 10px;
+            display: inline-block; background: #333; }
+        .SSR { border: 2px solid gold; }
+        .SR { border: 2px solid silver; }
+        .R { border: 2px solid bronze; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>VoidCat's Fair Gacha Simulator</h1>
+        <button class="pull-btn" onclick="pull()">Pull x10</button>
+        <div class="stats" id="stats">
+            Pulls: 0 | Pity: 0/90 | SSR Rate: 2%
+        </div>
+        <div id="results"></div>
+    </div>
+    <script>
+        const rates = {SSR: 0.02, SR: 0.18, R: 0.8};
+        let pulls = 0;
+        let pity = 0;
+        
+        function pull() {
+            let results = [];
+            for(let i = 0; i < 10; i++) {
+                pity++;
+                let roll = Math.random();
+                let rarity = 'R';
+                
+                if(pity >= 90 || roll < rates.SSR) {
+                    rarity = 'SSR';
+                    pity = 0;
+                } else if(roll < rates.SSR + rates.SR) {
+                    rarity = 'SR';
+                }
+                
+                results.push(rarity);
+                pulls++;
+            }
+            
+            document.getElementById('stats').innerHTML = 
+                `Pulls: ${pulls} | Pity: ${pity}/90 | SSR Rate: ${(rates.SSR*100).toFixed(1)}%`;
+            
+            displayResults(results);
+        }
+        
+        function displayResults(results) {
+            const container = document.getElementById('results');
+            container.innerHTML = results.map(rarity => 
+                `<div class="character ${rarity}">${rarity}</div>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>
