@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VoidCat's Gacha Simulator</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: monospace;
+        }
+        #container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .pull-button {
+            background: #6200ea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .stats {
+            border: 1px solid #333;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .rarity-SSR { color: #ffd700; }
+        .rarity-SR { color: #c0c0c0; }
+        .rarity-R { color: #cd7f32; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>虚空のガチャ Simulator v1.0</h1>
+        <div class="stats">
+            <p>Pity Counter: <span id="pity">0</span>/90</p>
+            <p>SSR Rate: 2% (Pity at 90)</p>
+            <p>SR Rate: 18%</p>
+            <p>R Rate: 80%</p>
+        </div>
+        <button class="pull-button" onclick="singlePull()">Single Pull</button>
+        <button class="pull-button" onclick="tenPull()">Ten Pull</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let pityCount = 0;
+        
+        function mersenneTwister() {
+            return Math.random(); // Simplified for example
+        }
+
+        function getRarity() {
+            const roll = mersenneTwister();
+            pityCount++;
+            
+            if (pityCount >= 90 || roll < 0.02) {
+                pityCount = 0;
+                return 'SSR';
+            }
+            if (roll < 0.20) return 'SR';
+            return 'R';
+        }
+
+        function singlePull() {
+            const rarity = getRarity();
+            displayResult([rarity]);
+            updatePity();
+        }
+
+        function tenPull() {
+            const results = [];
+            for (let i = 0; i < 10; i++) {
+                results.push(getRarity());
+            }
+            displayResult(results);
+            updatePity();
+        }
+
+        function displayResult(results) {
+            const resultsDiv = document.getElementById('results');
+            const resultHTML = results.map(r => 
+                `<span class="rarity-${r}">${r}</span>`
+            ).join(' ');
+            resultsDiv.innerHTML = resultHTML + '<br>' + resultsDiv.innerHTML;
+        }
+
+        function updatePity() {
+            document.getElementById('pity').textContent = pityCount;
+        }
+    </script>
+</body>
+</html>
