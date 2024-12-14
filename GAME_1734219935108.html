@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyanDice by VoidCat</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #e4e4e4;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            touch-action: manipulation;
+        }
+        #gameContainer {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(123, 44, 191, 0.5);
+            max-width: 95vw;
+        }
+        .dice {
+            font-size: 48px;
+            margin: 20px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .dice.rolling {
+            animation: roll 0.5s ease;
+        }
+        button {
+            background: #7b2cbf;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+            transition: transform 0.2s ease, background 0.3s ease;
+            touch-action: manipulation;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: #9b4cdf;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        button:disabled {
+            background: #4a4a4a;
+            transform: none;
+        }
+        #stats {
+            margin-top: 20px;
+            padding: 15px;
+            background: #242747;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .win {
+            color: #4caf50;
+            animation: pulse 0.5s infinite;
+        }
+        .input-group {
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        input[type="number"] {
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid #7b2cbf;
+            background: #242747;
+            color: white;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .help-text {
+            font-size: 14px;
+            color: #888;
+            margin: 5px 0;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        @keyframes roll {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 480px) {
+            #gameContainer {
+                padding: 15px;
+            }
+            .dice {
+                font-size: 36px;
+            }
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h2>NyanDice 🎲</h2>
+        <div class="help-text">
+            Choose a target number (2-12) and place your bet!
+            Higher multiplier for harder numbers.
+        </div>
+        <div id="balance-container">Balance: <span id="balance">1000</span> coins</div>
+        <div class="input-group">
+            <label for="betAmount">Bet Amount:</label>
+            <input type="number" id="betAmount" value="10" min="1" max="1000">
+            <label for="targetNumber">Target Number (2-12):</label>
+            <input type="number" id="targetNumber" value="7" min="2" max="12">
+        </div>
+        <button id="rollButton" onclick="placeBet()">Roll Dice!</button>
+        <div class="dice" id="diceResult">🎲 🎲</div>
+        <div id="result"></div>
+        <div id="stats">
+            Wins: <span id="wins">0</span> | Losses: <span id="losses">0</span>
+        </div>
+    </div>
+
+    <script>
+        let balance = 1000;
+        let wins = 0;
+        let losses = 0;
+        const rollButton = document.getElementById('rollButton');
+        const diceResult = document.getElementById('diceResult');
+
+        function validateInputs() {
+            const betAmount = parseInt(document.getElementById('betAmount').value);
+            const targetNumber = parseInt(document.getElementById('targetNumber').value);
+            
+            if (isNaN(betAmount) || betAmount < 1 || betAmount > balance) {
+                alert('Please enter a valid bet amount');
+                return false;
+            }
+            if (isNaN(targetNumber) || targetNumber < 2 || targetNumber > 12) {
+                alert('Target number must be between 2 and 12');
+                return false;
+            }
+            return true;
+        }
+
+        function animateDiceRoll() {
+            diceResult.classList.add('rolling');
+            setTimeout(() => {
+                diceResult.classList.remove('rolling');
+            }, 500);
+        }
+
+        function placeBet() {
+            if (!validateInputs()) return;
+
+            rollButton.disabled = true;
+            const betAmount = parseInt(document.getElementById('betAmount').value);
+            const targetNumber = parseInt(document.getElementById('targetNumber').value);
+            
+            balance -= betAmount;
+            animateDiceRoll();
+
+            setTimeout(() => {
+                const dice1 = Math.floor(Math.random() * 6) + 1;
+                const dice2 = Math.floor(Math.random() * 6) + 1;
+                const sum = dice1 + dice2;
+
+                diceResult.textContent = `${dice1} + ${dice2} = ${sum}`;
+                
+                const multiplier = Math.abs(7 - targetNumber) + 1;
+                if (sum === targetNumber) {
+                    const winAmount = betAmount * multiplier;
+                    balance += winAmount;
+                    document.getElementById('result').innerHTML = 
+                        `<span class="win">You won ${winAmount} coins! (${multiplier}x) nyā~!</span>`;
+                    wins++;
+                } else {
+                    document.getElementById('result').textContent = 'Better luck next time nyā...';
+                    losses++;
+                }
+
+                updateStats();
+                rollButton.disabled = false;
+            }, 500);
+        }
+
+        function updateStats() {
+            document.getElementById('balance').textContent = balance;
+            document.getElementById('wins').textContent = wins;
+            document.getElementById('losses').textContent = losses;
+            
+            if (balance <= 0) {
+                rollButton.disabled = true;
+                document.getElementById('result').textContent = 'Game Over! Refresh to play again.';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('betAmount').addEventListener('input', function() {
+                this.value = Math.min(Math.max(this.value, 1), balance);
+            });
+            document.getElementById('targetNumber').addEventListener('input', function() {
+                this.value = Math.min(Math.max(this.value, 2), 12);
+            });
+        });
+    </script>
+</body>
+</html>
