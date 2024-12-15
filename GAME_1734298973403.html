@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyanPaw Roulette</title>
+    <style>
+        :root {
+            --primary-bg: #1a1a2e;
+            --secondary-bg: #16213e;
+            --accent-color: #533483;
+            --highlight-color: #e94560;
+            --text-color: #e4e4e4;
+        }
+        
+        body {
+            background: var(--primary-bg);
+            color: var(--text-color);
+            font-family: 'Segoe UI', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        #game-container {
+            background: var(--secondary-bg);
+            border-radius: 15px;
+            padding: 20px;
+            width: min(600px, 90vw);
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+
+        #portals {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .portal {
+            width: 80px;
+            height: 80px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .portal:before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .portal:hover:before {
+            opacity: 1;
+        }
+
+        .portal.active {
+            background: var(--highlight-color);
+            transform: scale(1.1);
+        }
+
+        .portal.winner {
+            animation: pulse 1s infinite;
+        }
+
+        #controls {
+            margin: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            background: #634493;
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        input {
+            background: #2a2a4a;
+            color: white;
+            border: 1px solid var(--accent-color);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 1rem;
+            width: 100px;
+        }
+
+        #result {
+            min-height: 24px;
+            font-weight: bold;
+        }
+
+        .how-to-play {
+            background: rgba(83, 52, 131, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 480px) {
+            .portal {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h2>NyanPaw Roulette</h2>
+        <div class="how-to-play">
+            1. Select a portal by clicking/tapping
+            2. Enter your bet amount
+            3. Click 'Place Bet' to play
+            4. Win 5x your bet if you choose correctly!
+        </div>
+        <p>Balance: <span id="balance">1000</span> coins</p>
+        <div id="portals"></div>
+        <div id="controls">
+            <input type="number" id="bet" min="1" max="1000" value="10">
+            <button id="betButton">Place Bet</button>
+        </div>
+        <p id="result"></p>
+    </div>
+    <script>
+        const state = {
+            balance: 1000,
+            canBet: true,
+            selectedPortal: null
+        };
+
+        const elements = {
+            balance: document.getElementById('balance'),
+            bet: document.getElementById('bet'),
+            result: document.getElementById('result'),
+            betButton: document.getElementById('betButton')
+        };
+
+        function updateBalance(newBalance) {
+            state.balance = newBalance;
+            elements.balance.textContent = newBalance;
+        }
+
+        function createPortals() {
+            const portalsDiv = document.getElementById('portals');
+            for(let i = 0; i < 6; i++) {
+                const portal = document.createElement('div');
+                portal.className = 'portal';
+                portal.setAttribute('data-index', i);
+                portal.addEventListener('click', () => selectPortal(i));
+                portalsDiv.appendChild(portal);
+            }
+        }
+
+        function selectPortal(index) {
+            if(!state.canBet) return;
+            const portals = document.querySelectorAll('.portal');
+            portals.forEach(p => p.classList.remove('active'));
+            portals[index].classList.add('active');
+            state.selectedPortal = index;
+        }
+
+        function showResult(message, isWin = false) {
+            elements.result.textContent = message;
+            elements.result.style.color = isWin ? '#4CAF50' : '#e94560';
+        }
+
+        function resetGame() {
+            state.canBet = true;
+            document.querySelectorAll('.portal').forEach(p => {
+                p.style.background = '';
+                p.classList.remove('winner');
+            });
+        }
+
+        function placeBet() {
+            if(!state.canBet || state.selectedPortal === null) {
+                showResult('Please select a portal first!');
+                return;
+            }
+
+            const betAmount = Math.floor(Number(elements.bet.value));
+            if(isNaN(betAmount) || betAmount > state.balance || betAmount < 1) {
+                showResult('Invalid bet amount nyā!');
+                return;
+            }
+
+            state.canBet = false;
+            updateBalance(state.balance - betAmount);
+
+            setTimeout(() => {
+                const winning = Math.floor(Math.random() * 6);
+                const won = winning === state.selectedPortal;
+                const portals = document.querySelectorAll('.portal');
+                
+                portals[winning].style.background = 'var(--highlight-color)';
+                portals[winning].classList.add('winner');
+
+                if(won) {
+                    updateBalance(state.balance + betAmount * 5);
+                    showResult('You won! Nyā~', true);
+                } else {
+                    showResult('Try again! Nyā~');
+                }
+                
+                setTimeout(resetGame, 1500);
+            }, 1000);
+        }
+
+        elements.betButton.addEventListener('click', placeBet);
+        elements.bet.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+
+        createPortals();
+    </script>
+</body>
+</html>
