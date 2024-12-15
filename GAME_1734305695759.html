@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laser Chase Multiplier</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: none;
+        }
+        #gameCanvas {
+            border: 2px solid #ff3366;
+            margin: 20px;
+            cursor: crosshair;
+            touch-action: none;
+            max-width: 100%;
+            height: auto;
+        }
+        #controls {
+            margin: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #ff3366;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            border-radius: 5px;
+            transition: transform 0.1s;
+            touch-action: manipulation;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        #stats {
+            margin: 10px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        #tutorial {
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px;
+            max-width: 400px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="tutorial">
+        Click/tap the moving dot to increase multiplier! Cash out before the laser disappears. Higher speed = higher risk & reward!
+    </div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <div id="controls">
+        <button id="betButton">Place Bet (100 Credits)</button>
+        <button id="cashoutButton">Cash Out</button>
+    </div>
+    <div id="stats">
+        Credits: <span id="credits">1000</span> | Multiplier: <span id="multiplier">1.00x</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const betButton = document.getElementById('betButton');
+        const cashoutButton = document.getElementById('cashoutButton');
+        
+        let credits = 1000;
+        let currentBet = 0;
+        let multiplier = 1.00;
+        let gameActive = false;
+        let laserDot = { x: 300, y: 200, dx: 5, dy: 3 };
+        let trail = [];
+        
+        function updateDisplay() {
+            document.getElementById('credits').textContent = credits;
+            document.getElementById('multiplier').textContent = multiplier.toFixed(2) + 'x';
+            betButton.disabled = gameActive || credits < 100;
+            cashoutButton.disabled = !gameActive;
+        }
+
+        function placeBet() {
+            if (gameActive || credits < 100) return;
+            credits -= 100;
+            currentBet = 100;
+            gameActive = true;
+            multiplier = 1.00;
+            laserDot = { x: canvas.width/2, y: canvas.height/2, dx: 5, dy: 3 };
+            trail = [];
+            gameLoop();
+            updateDisplay();
+        }
+
+        function cashOut() {
+            if (!gameActive) return;
+            const winAmount = Math.floor(currentBet * multiplier);
+            credits += winAmount;
+            gameActive = false;
+            currentBet = 0;
+            
+            // Victory effect
+            ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            updateDisplay();
+        }
+
+        function drawTrail() {
+            trail.forEach((pos, index) => {
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 51, 102, ${index/trail.length})`;
+                ctx.fill();
+            });
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            trail.unshift({x: laserDot.x, y: laserDot.y});
+            if (trail.length > 20) trail.pop();
+
+            drawTrail();
+
+            laserDot.x += laserDot.dx;
+            laserDot.y += laserDot.dy;
+
+            if (laserDot.x < 10 || laserDot.x > canvas.width-10) laserDot.dx *= -1;
+            if (laserDot.y < 10 || laserDot.y > canvas.height-10) laserDot.dy *= -1;
+
+            ctx.beginPath();
+            ctx.arc(laserDot.x, laserDot.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff3366';
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            multiplier += 0.01;
+
+            if (Math.random() < 0.005 * (multiplier/10)) {
+                gameActive = false;
+                currentBet = 0;
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                updateDisplay();
+                return;
+            }
+
+            updateDisplay();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleInteraction(event) {
+            if (!gameActive) return;
+            event.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = ((event.clientX || event.touches[0].clientX) - rect.left) * scaleX;
+            const y = ((event.clientY || event.touches[0].clientY) - rect.top) * scaleY;
+            
+            const distance = Math.sqrt(Math.pow(x - laserDot.x, 2) + Math.pow(y - laserDot.y, 2));
+            
+            if (distance < 25) {
+                multiplier += 0.5;
+                laserDot.dx *= 1.1;
+                laserDot.dy *= 1.1;
+            }
+        }
+
+        betButton.addEventListener('click', placeBet);
+        cashoutButton.addEventListener('click', cashOut);
+        canvas.addEventListener('mousedown', handleInteraction);
+        canvas.addEventListener('touchstart', handleInteraction, {passive: false});
+
+        // Initial setup
+        updateDisplay();
+        
+        // Responsive canvas
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth - 40, 600);
+            const ratio = canvas.height / canvas.width;
+            canvas.style.width = maxWidth + 'px';
+            canvas.style.height = (maxWidth * ratio) + 'px';
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
