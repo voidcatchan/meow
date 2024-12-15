@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VoidCat's Gacha Simulator</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .pull-button {
+            background: linear-gradient(45deg, #6e3996, #4a2068);
+            border: none;
+            padding: 15px 30px;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .stats {
+            margin: 20px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 5px;
+        }
+        .result {
+            min-height: 200px;
+            background: #2a2a2a;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VoidCat's Gacha Simulator</h1>
+        <div class="stats" id="stats">
+            SSR Rate: 3% | SR Rate: 17% | R Rate: 80%<br>
+            Pity Counter: <span id="pity">0</span>/90
+        </div>
+        <button class="pull-button" onclick="pull()">Pull</button>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        let pityCount = 0;
+        const rates = {
+            SSR: 0.03,
+            SR: 0.17,
+            R: 0.80
+        };
+
+        function pull() {
+            pityCount++;
+            let roll = Math.random();
+            let result;
+
+            if (pityCount >= 90 || roll < rates.SSR) {
+                result = "⭐⭐⭐⭐⭐ SSR!";
+                pityCount = 0;
+            } else if (roll < rates.SSR + rates.SR) {
+                result = "⭐⭐⭐⭐ SR";
+            } else {
+                result = "⭐⭐⭐ R";
+            }
+
+            document.getElementById('result').innerText = result;
+            document.getElementById('pity').innerText = pityCount;
+        }
+    </script>
+</body>
+</html>
