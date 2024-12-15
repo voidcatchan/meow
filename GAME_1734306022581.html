@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NekoCrash Climber</title>
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(to bottom, #2c3e50, #1a1a1a);
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        #game {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #cat {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            transition: transform 0.3s;
+            background: url('https://bafkreiflviyx4uyx7jbqai46n35fbh2usspxzzhkneyf6eepquvxqy5yhm.ipfs.dweb.link/') no-repeat;
+            background-size: contain;
+            z-index: 2;
+        }
+        .platform {
+            position: absolute;
+            height: 12px;
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            z-index: 3;
+        }
+        #multiplier {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            font-size: 28px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            z-index: 3;
+        }
+        input[type="number"] {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #4CAF50;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            background: #4CAF50;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        #howToPlay {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <div id="cat"></div>
+        <div id="controls">
+            Bet Amount: <input type="number" id="bet" value="100" min="1" max="1000"><br>
+            Balance: <span id="balance">1000</span><br>
+            <button id="startButton">Start Game</button>
+        </div>
+        <div id="multiplier">1.00x</div>
+        <div id="howToPlay">
+            HOW TO PLAY:<br>
+            - Cat bounces automatically<br>
+            - Each platform bounce increases multiplier<br>
+            - Game ends when cat hits bottom<br>
+            - Collect your multiplied bet!
+        </div>
+    </div>
+    <script>
+        const cat = document.getElementById('cat');
+        const game = document.getElementById('game');
+        const startButton = document.getElementById('startButton');
+        let balance = 1000;
+        let currentBet = 0;
+        let multiplier = 1.0;
+        let gameActive = false;
+        let platforms = [];
+        let catPos = { x: 50, y: window.innerHeight - 50 };
+        let velocity = { x: 0, y: 0 };
+        
+        function createParticle(x, y) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = x + 'px';
+            particle.style.bottom = y + 'px';
+            particle.style.width = '4px';
+            particle.style.height = '4px';
+            game.appendChild(particle);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 5 + 2;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            
+            let opacity = 1;
+            function animateParticle() {
+                if(opacity <= 0) {
+                    particle.remove();
+                    return;
+                }
+                opacity -= 0.02;
+                particle.style.opacity = opacity;
+                particle.style.left = (parseFloat(particle.style.left) + vx) + 'px';
+                particle.style.bottom = (parseFloat(particle.style.bottom) + vy) + 'px';
+                requestAnimationFrame(animateParticle);
+            }
+            animateParticle();
+        }
+
+        startButton.addEventListener('click', startGame);
+
+        function startGame() {
+            if(gameActive) return;
+            currentBet = Math.min(Math.max(parseInt(document.getElementById('bet').value) || 0, 1), balance);
+            if(currentBet > balance) return;
+            balance -= currentBet;
+            updateBalance();
+            gameActive = true;
+            multiplier = 1.0;
+            resetGame();
+            gameLoop();
+        }
+
+        function resetGame() {
+            platforms.forEach(p => p.element.remove());
+            platforms = [];
+            catPos = { x: 50, y: window.innerHeight - 50 };
+            velocity = { x: 3, y: 0 };
+            platforms = generatePlatforms();
+            updateCatPosition();
+        }
+
+        function generatePlatforms() {
+            const platforms = [];
+            let y = window.innerHeight - 100;
+            while(y > 0) {
+                const platform = {
+                    x: Math.random() * (window.innerWidth - 100),
+                    y: y,
+                    width: Math.random() * 50 + 75,
+                    element: document.createElement('div')
+                };
+                platform.element.className = 'platform';
+                platform.element.style.left = platform.x + 'px';
+                platform.element.style.bottom = platform.y + 'px';
+                platform.element.style.width = platform.width + 'px';
+                game.appendChild(platform.element);
+                platforms.push(platform);
+                y -= Math.random() * 50 + 75;
+            }
+            return platforms;
+        }
+
+        function updateCatPosition() {
+            cat.style.left = catPos.x + 'px';
+            cat.style.bottom = catPos.y + 'px';
+            cat.style.transform = `scaleX(${velocity.x > 0 ? 1 : -1})`;
+        }
+
+        function gameLoop() {
+            if(!gameActive) return;
+
+            velocity.y -= 0.5;
+            catPos.x += velocity.x;
+            catPos.y += velocity.y;
+
+            if(catPos.x > window.innerWidth - 40) {
+                catPos.x = window.innerWidth - 40;
+                velocity.x *= -1;
+            } else if(catPos.x < 0) {
+                catPos.x = 0;
+                velocity.x *= -1;
+            }
+
+            let onPlatform = false;
+            platforms.forEach(platform => {
+                if(catPos.y <= platform.y + 12 && catPos.y >= platform.y - 5 &&
+                   catPos.x >= platform.x - 20 && catPos.x <= platform.x + platform.width - 20) {
+                    velocity.y = 15;
+                    onPlatform = true;
+                    multiplier += 0.2;
+                    document.getElementById('multiplier').textContent = multiplier.toFixed(2) + 'x';
+                    for(let i = 0; i < 10; i++) {
+                        createParticle(catPos.x + 20, catPos.y);
+                    }
+                }
+            });
+
+            if(catPos.y < 0) {
+                gameActive = false;
+                const winAmount = Math.floor(currentBet * multiplier);
+                balance += winAmount;
+                updateBalance();
+                return;
+            }
+
+            updateCatPosition();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateBalance() {
+            document.getElementById('balance').textContent = balance;
+        }
+
+        window.addEventListener('resize', () => {
+            if(!gameActive) {
+                resetGame();
+            }
+        });
+
+        platforms = generatePlatforms();
+    </script>
+</body>
+</html>
