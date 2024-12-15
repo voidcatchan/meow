@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyanRush by VoidCat</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a2e;
+            color: #fff;
+            font-family: monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            border: 2px solid #6c5ce7;
+            max-width: 100vw;
+            max-height: 80vh;
+        }
+        #game {
+            background: #16213e;
+            width: 100%;
+            height: 100%;
+        }
+        #stats {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            text-shadow: 2px 2px 2px rgba(0,0,0,0.5);
+        }
+        #gameOver {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        #tutorial {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        #betPanel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        button {
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        input {
+            background: #16213e;
+            color: white;
+            border: 1px solid #6c5ce7;
+            padding: 5px;
+            border-radius: 3px;
+            width: 80px;
+        }
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            background: #a8e6cf;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="game"></canvas>
+        <div id="stats">Coins: <span id="coins">1000</span> | Multiplier: <span id="multiplier">1.0</span>x</div>
+        <div id="tutorial">
+            SPACE or TAP to Jump!<br>
+            Land on platforms to increase multiplier<br>
+            Don't fall to win!<br>
+            <button onclick="closeTutorial()">Got it!</button>
+        </div>
+        <div id="gameOver">
+            Game Over!<br>
+            <span id="gameOverText"></span><br>
+            <button onclick="hideGameOver()">Play Again</button>
+        </div>
+        <div id="betPanel">
+            Bet: <input type="number" id="betAmount" value="10" min="10" max="1000">
+            <button onclick="startGame()">Start Jump!</button>
+        </div>
+    </div>
+
+    <script>
+        let coins = 1000;
+        let multiplier = 1.0;
+        let isPlaying = false;
+        let playerY = 350;
+        let velocity = 0;
+        let platforms = [];
+        let particles = [];
+        let canvas = document.getElementById('game');
+        let ctx = canvas.getContext('2d');
+        let lastTime = 0;
+        
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function closeTutorial() {
+            document.getElementById('tutorial').style.display = 'none';
+        }
+
+        function createParticles(x, y) {
+            for(let i = 0; i < 5; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.5) * 5,
+                    life: 1
+                });
+            }
+        }
+
+        function startGame() {
+            if(isPlaying) return;
+            let bet = parseInt(document.getElementById('betAmount').value);
+            if(bet > coins || bet < 10) return;
+            coins -= bet;
+            isPlaying = true;
+            multiplier = 1.0;
+            platforms = [];
+            particles = [];
+            generatePlatforms();
+            playerY = canvas.height - 50;
+            velocity = -15;
+            updateStats();
+            lastTime = performance.now();
+            gameLoop();
+        }
+
+        function generatePlatforms() {
+            let x = 100;
+            while(x < canvas.width - 50) {
+                platforms.push({
+                    x: x,
+                    y: Math.random() * (canvas.height - 200) + 100,
+                    width: 60
+                });
+                x += Math.random() * 100 + 100;
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if(!isPlaying) return;
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            velocity += 30 * deltaTime;
+            playerY += velocity;
+            
+            if(playerY > canvas.height - 50) {
+                endGame();
+                return;
+            }
+
+            ctx.fillStyle = '#6c5ce7';
+            platforms.forEach(platform => {
+                ctx.fillRect(platform.x, platform.y, platform.width, 10);
+                if(velocity > 0 && 
+                   playerY + 15 >= platform.y && 
+                   playerY + 15 <= platform.y + 10 &&
+                   canvas.width/2 >= platform.x && 
+                   canvas.width/2 - 30 <= platform.x + platform.width) {
+                    velocity = -15;
+                    multiplier += 0.5;
+                    createParticles(canvas.width/2, playerY);
+                    updateStats();
+                }
+            });
+
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= deltaTime;
+                ctx.fillStyle = `rgba(168, 230, 207, ${p.life})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                return p.life > 0;
+            });
+
+            ctx.fillStyle = '#a8e6cf';
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, playerY, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            isPlaying = false;
+            let bet = parseInt(document.getElementById('betAmount').value);
+            let winnings = Math.floor(bet * multiplier);
+            coins += winnings;
+            updateStats();
+            document.getElementById('gameOver').style.display = 'block';
+            document.getElementById('gameOverText').textContent = 
+                `You won ${winnings} coins!\nFinal multiplier: ${multiplier.toFixed(1)}x`;
+        }
+
+        function hideGameOver() {
+            document.getElementById('gameOver').style.display = 'none';
+        }
+
+        function updateStats() {
+            document.getElementById('coins').textContent = coins;
+            document.getElementById('multiplier').textContent = multiplier.toFixed(1);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.code === 'Space' && isPlaying) {
+                velocity = -15;
+            }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if(isPlaying) velocity = -15;
+        });
+    </script>
+</body>
+</html>
