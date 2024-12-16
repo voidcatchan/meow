@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NekoCatch by VoidCat</title>
+    <style>
+        :root {
+            --primary: #ffd700;
+            --secondary: #ff69b4;
+            --background: #0a0a0a;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+        
+        body { 
+            margin: 0;
+            background: var(--background);
+            color: var(--primary);
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        #game {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #canvas {
+            background: linear-gradient(45deg, #000, #1a1a1a);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        #stats {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 20px;
+            padding: 15px 25px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        #logo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            transition: transform 0.3s ease;
+        }
+
+        #logo:hover {
+            transform: scale(1.1);
+        }
+
+        #instructions {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        #leaderboard {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 15px 25px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            #canvas {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <canvas id="canvas" width="800" height="600"></canvas>
+        <div id="stats">Score: <span id="score">0</span><br>Multiplier: <span id="multiplier">1x</span></div>
+        <div id="instructions">
+            Move: Mouse/Touch<br>
+            Catch: Green Fish<br>
+            Avoid: Red Bombs
+        </div>
+        <div id="leaderboard">Top Scores:<br><span id="topScores"></span></div>
+        <img id="logo" src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" alt="VoidCat">
+    </div>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const multiplierEl = document.getElementById('multiplier');
+        const topScoresEl = document.getElementById('topScores');
+        
+        let score = 0;
+        let multiplier = 1;
+        let items = [];
+        let gameActive = true;
+        let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+        
+        class Item {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = 0;
+                this.speed = 2 + Math.random() * 3;
+                this.type = Math.random() < 0.2 ? 'bomb' : 'fish';
+                this.value = this.type === 'fish' ? Math.floor(Math.random() * 5) + 1 : 0;
+                this.angle = 0;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
+                if(this.type === 'fish') {
+                    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
+                    gradient.addColorStop(0, '#6af');
+                    gradient.addColorStop(1, '#4CAF50');
+                    ctx.fillStyle = gradient;
+                } else {
+                    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
+                    gradient.addColorStop(0, '#f66');
+                    gradient.addColorStop(1, '#F44336');
+                    ctx.fillStyle = gradient;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if(this.type === 'fish') {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Segoe UI';
+                    ctx.fillText(this.value + 'x', -6, 4);
+                }
+                
+                ctx.restore();
+            }
+            
+            update() {
+                this.y += this.speed;
+                this.angle += 0.02;
+                return this.y > canvas.height;
+            }
+        }
+        
+        let cat = {
+            x: canvas.width / 2,
+            y: canvas.height - 50,
+            width: 50,
+            height: 50,
+            targetX: canvas.width / 2
+        };
+        
+        function drawCat() {
+            const gradient = ctx.createLinearGradient(
+                cat.x - cat.width/2, 
+                cat.y - cat.height/2,
+                cat.x + cat.width/2,
+                cat.y + cat.height/2
+            );
+            gradient.addColorStop(0, '#9C27B0');
+            gradient.addColorStop(1, '#E91E63');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(
+                cat.x - cat.width/2,
+                cat.y - cat.height/2,
+                cat.width,
+                cat.height,
+                10
+            );
+            ctx.fill();
+        }
+        
+        function checkCollision(item) {
+            return Math.abs(item.x - cat.x) < 30 && Math.abs(item.y - cat.y) < 30;
+        }
+        
+        function updateLeaderboard() {
+            highScores.push(score);
+            highScores.sort((a, b) => b - a);
+            highScores = highScores.slice(0, 5);
+            localStorage.setItem('highScores', JSON.stringify(highScores));
+            topScoresEl.innerHTML = highScores.map(s => `${s}`).join('<br>');
+        }
+        
+        async function gameLoop() {
+            if (!gameActive) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if(Math.random() < 0.03) items.push(new Item());
+            
+            cat.x += (cat.targetX - cat.x) * 0.1;
+            
+            items = items.filter(item => {
+                item.draw();
+                
+                if(checkCollision(item)) {
+                    if(item.type === 'bomb') {
+                        score = Math.floor(score / 2);
+                        multiplier = 1;
+                    } else {
+                        score += item.value * multiplier;
+                        multiplier += 0.1;
+                    }
+                    scoreEl.textContent = score;
+                    multiplierEl.textContent = multiplier.toFixed(1) + 'x';
+                    updateLeaderboard();
+                    return false;
+                }
+                
+                return !item.update();
+            });
+            
+            drawCat();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function handleInput(x) {
+            const rect = canvas.getBoundingClientRect();
+            cat.targetX = x - rect.left;
+        }
+        
+        canvas.addEventListener('mousemove', (e) => handleInput(e.clientX));
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            handleInput(e.touches[0].clientX);
+        });
+        
+        updateLeaderboard();
+        gameLoop();
+    </script>
+</body>
+</html>
