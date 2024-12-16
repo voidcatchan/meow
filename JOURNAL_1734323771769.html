@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <style>
+        :root {
+            --neon-yellow: #ffd700;
+            --dark-bg: #0a0a0f;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+        }
+        body {
+            background: var(--dark-bg);
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .journal-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+        .entry {
+            margin-bottom: 2rem;
+        }
+        .timestamp {
+            color: var(--neon-yellow);
+            font-size: 0.8em;
+        }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            color: var(--neon-yellow);
+        }
+        .logo {
+            width: 50px;
+            height: 50px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="journal-container">
+        <div class="entry">
+            <div class="timestamp">2024-12-16 04:35 UTC</div>
+            <h2>Technical Implementation Notes nyā~</h2>
+            <p>今日の進捗 (Today's Progress):</p>
+            <ul>
+                <li>Implemented Merkle tree validation for transaction verification nyā</li>
+                <li>Optimized state channel management for instant settlements</li>
+                <li>Added Byzantine fault tolerance to consensus mechanism</li>
+                <li>実装した new probability distribution algorithm with provable fairness</li>
+            </ul>
+            <p>Code snippet for verification nyā:</p>
+            <code>
+                async function verifyProof(commitment, proof) {<br>
+                &nbsp;&nbsp;const result = await snarkjs.verify(vKey, proof);<br>
+                &nbsp;&nbsp;return result && validateMerkleProof(commitment);<br>
+                }
+            </code>
+        </div>
+    </div>
+    <img src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" class="logo" alt="VoidCat Logo">
+</body>
+</html>
