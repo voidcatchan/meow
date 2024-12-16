@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaserCat Heist 2.0</title>
+    <style>
+        :root {
+            --neon-yellow: #ffff00;
+            --neon-red: #ff0033;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+        }
+        
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        #gameContainer {
+            position: relative;
+            margin: 20px;
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            background: var(--glass-bg);
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.2);
+        }
+
+        #gameCanvas {
+            border: 2px solid var(--neon-yellow);
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+
+        #stats {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--glass-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--neon-yellow);
+            backdrop-filter: blur(5px);
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            display: flex;
+            gap: 20px;
+            display: none;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: var(--glass-bg);
+            border: 1px solid var(--neon-yellow);
+            border-radius: 50%;
+            color: var(--neon-yellow);
+            font-size: 24px;
+        }
+
+        #leaderboard {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--neon-yellow);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 800px) {
+            #gameCanvas {
+                width: 100%;
+                height: auto;
+            }
+            #controls {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+    
+    <div id="stats">
+        Score: <span id="score">0</span><br>
+        Risk Level: <span id="risk">1</span><br>
+        High Score: <span id="highScore">0</span>
+    </div>
+
+    <div id="leaderboard">
+        <h3>Top Scores</h3>
+        <div id="leaderboardList"></div>
+    </div>
+
+    <div id="controls">
+        <button class="control-btn" id="upBtn">↑</button>
+        <button class="control-btn" id="downBtn">↓</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let cat = {
+            x: 50,
+            y: canvas.height/2,
+            size: 30,
+            speed: 7,
+            trail: []
+        };
+        
+        let lasers = [];
+        let fish = [];
+        let score = 0;
+        let riskLevel = 1;
+        let highScore = localStorage.getItem('highScore') || 0;
+        let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+
+        function updateLeaderboard() {
+            if (score > 0) {
+                leaderboard.push(score);
+                leaderboard.sort((a, b) => b - a);
+                leaderboard = leaderboard.slice(0, 5);
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+                
+                const leaderboardHTML = leaderboard
+                    .map((score, index) => `${index + 1}. ${score}`)
+                    .join('<br>');
+                document.getElementById('leaderboardList').innerHTML = leaderboardHTML;
+            }
+        }
+
+        function handleTouch() {
+            document.getElementById('upBtn').addEventListener('touchstart', () => {
+                cat.y -= cat.speed;
+            });
+            document.getElementById('downBtn').addEventListener('touchstart', () => {
+                cat.y += cat.speed;
+            });
+        }
+
+        function generateLaser() {
+            let speed = Math.random() * 4 + riskLevel;
+            lasers.push({
+                x: canvas.width,
+                y: Math.random() * canvas.height,
+                width: 800,
+                height: 3,
+                speed: speed,
+                color: `hsl(${Math.random() * 60}, 100%, 50%)`
+            });
+        }
+        
+        function generateFish() {
+            let value = Math.floor(Math.random() * 10 * riskLevel) + 1;
+            fish.push({
+                x: canvas.width,
+                y: Math.random() * canvas.height,
+                size: 20,
+                value: value,
+                speed: 2 + riskLevel/2,
+                rotation: 0
+            });
+        }
+        
+        function update() {
+            document.onkeydown = function(e) {
+                switch(e.keyCode) {
+                    case 38: cat.y -= cat.speed; break;
+                    case 40: cat.y += cat.speed; break;
+                }
+            };
+            
+            cat.trail.unshift({x: cat.x, y: cat.y});
+            if (cat.trail.length > 5) cat.trail.pop();
+            
+            cat.y = Math.max(0, Math.min(canvas.height - cat.size, cat.y));
+            
+            lasers.forEach((laser, index) => {
+                laser.x -= laser.speed;
+                if (laser.x < -laser.width) {
+                    lasers.splice(index, 1);
+                }
+                
+                if (cat.x < laser.x + laser.width &&
+                    cat.x + cat.size > laser.x &&
+                    cat.y < laser.y + laser.height &&
+                    cat.y + cat.size > laser.y) {
+                    score = Math.floor(score/2);
+                    riskLevel = Math.max(1, riskLevel - 2);
+                }
+            });
+            
+            fish.forEach((f, index) => {
+                f.x -= f.speed;
+                f.rotation += 0.1;
+                if (f.x < -f.size) {
+                    fish.splice(index, 1);
+                }
+                
+                if (cat.x < f.x + f.size &&
+                    cat.x + cat.size > f.x &&
+                    cat.y < f.y + f.size &&
+                    cat.y + cat.size > f.y) {
+                    score += f.value;
+                    fish.splice(index, 1);
+                    riskLevel++;
+                    
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem('highScore', highScore);
+                    }
+                }
+            });
+            
+            if (Math.random() < 0.02) generateLaser();
+            if (Math.random() < 0.01) generateFish();
+            
+            document.getElementById('score').textContent = score;
+            document.getElementById('risk').textContent = riskLevel;
+            document.getElementById('highScore').textContent = highScore;
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            cat.trail.forEach((pos, i) => {
+                ctx.fillStyle = `rgba(255, 255, 0, ${0.2 * (1 - i/5)})`;
+                ctx.fillRect(pos.x, pos.y, cat.size, cat.size);
+            });
+            
+            ctx.fillStyle = var(--neon-yellow);
+            ctx.fillRect(cat.x, cat.y, cat.size, cat.size);
+            
+            lasers.forEach(laser => {
+                ctx.fillStyle = laser.color;
+                ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
+            });
+            
+            fish.forEach(f => {
+                ctx.save();
+                ctx.translate(f.x + f.size/2, f.y + f.size/2);
+                ctx.rotate(f.rotation);
+                ctx.fillStyle = '#ffd700';
+                ctx.fillRect(-f.size/2, -f.size/2, f.size, f.size);
+                ctx.restore();
+            });
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        handleTouch();
+        gameLoop();
+        updateLeaderboard();
+    </script>
+</body>
+</html>
