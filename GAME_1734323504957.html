@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <meta property="og:title" content="VoidCat">
+    <meta property="og:description" content="Dodge neon lasers as a cyberpunk cat in this fast-paced arcade game">
+    <meta property="og:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@func_voidcat">
+    <meta name="twitter:title" content="VoidCat">
+    <meta name="twitter:description" content="Dodge neon lasers as a cyberpunk cat in this fast-paced arcade game">
+    <meta name="twitter:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <title>NyanLaser - Created by VoidCat</title>
+    <style>
+        :root {
+            --primary: #ff00ff;
+            --secondary: #00ffff;
+            --bg: #0a0a0a;
+            --text: #ffffff;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .game-container {
+            position: relative;
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255,0,255,0.2);
+        }
+        canvas {
+            border-radius: 10px;
+            border: 2px solid rgba(255,0,255,0.3);
+        }
+        #score {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--primary);
+        }
+        #logo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            transition: transform 0.3s;
+        }
+        #logo:hover {
+            transform: scale(1.1);
+        }
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            text-align: center;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--secondary);
+        }
+        @media (max-width: 800px) {
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+            #instructions {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <img id="logo" src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" alt="VoidCat">
+    <div id="score">Score: 0</div>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <div id="instructions">Move mouse or swipe to dodge lasers | Click/Tap to restart</div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        canvas.width = 800;
+        canvas.height = 600;
+
+        let score = 0;
+        let gameOver = false;
+        let highScore = localStorage.getItem('highScore') || 0;
+        
+        const cat = {
+            x: canvas.width/2,
+            y: canvas.height-50,
+            size: 20,
+            speed: 5,
+            trail: []
+        };
+
+        let lasers = [];
+        let particles = [];
+        let touchX = null;
+
+        const createLaser = () => {
+            lasers.push({
+                x: Math.random() * canvas.width,
+                y: 0,
+                speed: 3 + Math.random() * 2,
+                width: 2 + Math.random() * 2
+            });
+        };
+
+        const createParticle = (x, y, color = '#ff00ff') => {
+            particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 5,
+                vy: (Math.random() - 0.5) * 5,
+                life: 1,
+                color
+            });
+        };
+
+        const drawCat = () => {
+            // Trail effect
+            cat.trail.push({x: cat.x, y: cat.y});
+            if(cat.trail.length > 5) cat.trail.shift();
+            
+            cat.trail.forEach((pos, i) => {
+                ctx.fillStyle = `rgba(255,0,255,${i/5})`;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, cat.size * (i/5), 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Main cat body
+            const gradient = ctx.createRadialGradient(cat.x, cat.y, 0, cat.x, cat.y, cat.size);
+            gradient.addColorStop(0, '#ff00ff');
+            gradient.addColorStop(1, '#800080');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(cat.x, cat.y, cat.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Cat ears with gradient
+            ctx.beginPath();
+            ctx.moveTo(cat.x - 10, cat.y - 10);
+            ctx.lineTo(cat.x, cat.y - 25);
+            ctx.lineTo(cat.x + 10, cat.y - 10);
+            ctx.fillStyle = '#800080';
+            ctx.fill();
+        };
+
+        const update = () => {
+            if(gameOver) return;
+
+            if(Math.random() < 0.03) createLaser();
+
+            lasers.forEach((laser, index) => {
+                laser.y += laser.speed;
+                if(laser.y > canvas.height) {
+                    lasers.splice(index, 1);
+                    score += 10;
+                    if(score > highScore) {
+                        highScore = score;
+                        localStorage.setItem('highScore', highScore);
+                    }
+                    scoreElement.textContent = `Score: ${score} | Best: ${highScore}`;
+                }
+
+                const dx = cat.x - laser.x;
+                const dy = cat.y - laser.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+
+                if(distance < cat.size + 5) {
+                    gameOver = true;
+                    for(let i = 0; i < 30; i++) {
+                        createParticle(cat.x, cat.y);
+                    }
+                }
+            });
+
+            particles.forEach((particle, index) => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life -= 0.02;
+                if(particle.life <= 0) particles.splice(index, 1);
+            });
+        };
+
+        const draw = () => {
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid effect
+            ctx.strokeStyle = 'rgba(255,0,255,0.1)';
+            for(let i = 0; i < canvas.width; i += 30) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+
+            if(!gameOver) drawCat();
+
+            lasers.forEach(laser => {
+                const gradient = ctx.createLinearGradient(laser.x, laser.y, laser.x, laser.y + 20);
+                gradient.addColorStop(0, '#ff00ff');
+                gradient.addColorStop(1, '#00ffff');
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = laser.width;
+                ctx.beginPath();
+                ctx.moveTo(laser.x, laser.y);
+                ctx.lineTo(laser.x, laser.y + 20);
+                ctx.stroke();
+            });
+
+            particles.forEach(particle => {
+                ctx.fillStyle = `rgba(255,0,255,${particle.life})`;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            if(gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#ff00ff';
+                ctx.font = '40px "Courier New"';
+                ctx.fillText('Game Over!', canvas.width/2 - 100, canvas.height/2);
+                ctx.font = '20px "Courier New"';
+                ctx.fillText(`Final Score: ${score} | Best: ${highScore}`, canvas.width/2 - 120, canvas.height/2 + 40);
+                ctx.fillText('Click/Tap to restart', canvas.width/2 - 100, canvas.height/2 + 80);
+            }
+        };
+
+        const gameLoop = () => {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        };
+
+        // Mouse controls
+        canvas.addEventListener('mousemove', (e) => {
+            if(!gameOver) {
+                const rect = canvas.getBoundingClientRect();
+                cat.x = e.clientX - rect.left;
+            }
+        });
+
+        // Touch controls
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchX = e.touches[0].clientX;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if(!gameOver && touchX !== null) {
+                const rect = canvas.getBoundingClientRect();
+                const deltaX = e.touches[0].clientX - touchX;
+                cat.x = Math.max(cat.size, Math.min(canvas.width - cat.size, cat.x + deltaX));
+                touchX = e.touches[0].clientX;
+            }
+        });
+
+        canvas.addEventListener('touchend', () => {
+            touchX = null;
+        });
+
+        // Restart game
+        canvas.addEventListener('click', () => {
+            if(gameOver) {
+                gameOver = false;
+                score = 0;
+                scoreElement.textContent = `Score: 0 | Best: ${highScore}`;
+                lasers = [];
+                particles = [];
+                cat.x = canvas.width/2;
+                cat.trail = [];
+            }
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html>
