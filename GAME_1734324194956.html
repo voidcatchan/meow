@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <meta property="og:title" content="VoidCat">
+    <meta property="og:description" content="Guide your cosmic cat to catch fish while avoiding the void in this fast-paced arcade game">
+    <meta property="og:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@func_voidcat">
+    <meta name="twitter:title" content="VoidCat">
+    <meta name="twitter:description" content="Guide your cosmic cat to catch fish while avoiding the void in this fast-paced arcade game">
+    <meta name="twitter:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <title>VoidCat's Neko Fisher</title>
+    <style>
+        :root {
+            --primary: #ffd700;
+            --bg-dark: #0a0a0a;
+            --bg-light: #1a1a1a;
+            --accent: #ff4a4a;
+            --text: #ffffff;
+        }
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        #game-container {
+            position: relative;
+            width: min(800px, 95vw);
+            height: min(600px, 70vh);
+            border: 2px solid var(--primary);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            background: rgba(17, 17, 17, 0.8);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            overflow: hidden;
+        }
+        #cat {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: var(--primary);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            box-shadow: 0 0 15px var(--primary);
+        }
+        .fish {
+            position: absolute;
+            width: 30px;
+            height: 20px;
+            background: #4a9eff;
+            border-radius: 10px;
+            animation: swim 2s linear;
+        }
+        .void {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            border-radius: 20px;
+            animation: pulse 1s infinite;
+        }
+        #score {
+            font-size: 24px;
+            margin: 20px;
+            text-shadow: 0 0 10px var(--primary);
+        }
+        #controls {
+            margin: 20px;
+            gap: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+        .logo {
+            width: 50px;
+            height: 50px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            opacity: 0.8;
+        }
+        #instructions {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px;
+            max-width: 600px;
+            text-align: center;
+        }
+        @keyframes swim {
+            0% { transform: translateX(-30px); }
+            100% { transform: translateX(30px); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @media (max-width: 600px) {
+            #game-container {
+                height: 50vh;
+            }
+            button {
+                padding: 15px 25px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0 | Balance: 100</div>
+    <div id="controls">
+        <button onclick="placeBet(10)">Bet 10</button>
+        <button onclick="placeBet(20)">Bet 20</button>
+        <button onclick="placeBet(50)">Bet 50</button>
+    </div>
+    <div id="game-container">
+        <div id="cat"></div>
+        <img src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" class="logo" alt="VoidCat Logo">
+    </div>
+    <div id="instructions">
+        HOW TO PLAY: Move your cosmic cat to catch blue fish and earn points. Avoid red void orbs! Place bets to multiply your earnings. Game lasts 30 seconds.
+    </div>
+    <script>
+        const gameState = {
+            score: 0,
+            balance: 100,
+            currentBet: 0,
+            gameActive: false,
+            highScore: localStorage.getItem('highScore') || 0
+        };
+
+        const elements = {
+            cat: document.getElementById('cat'),
+            container: document.getElementById('game-container'),
+            scoreElement: document.getElementById('score')
+        };
+
+        const updateScore = () => {
+            elements.scoreElement.textContent = `Score: ${gameState.score} | Balance: ${gameState.balance} | High Score: ${gameState.highScore}`;
+        };
+
+        const placeBet = async (amount) => {
+            if (gameState.gameActive || gameState.balance < amount) return;
+            gameState.currentBet = amount;
+            gameState.balance -= amount;
+            gameState.gameActive = true;
+            gameState.score = 0;
+            updateScore();
+            await startGame();
+        };
+
+        const spawnEntity = (className) => {
+            const entity = document.createElement('div');
+            entity.className = className;
+            const containerRect = elements.container.getBoundingClientRect();
+            entity.style.left = `${Math.random() * (containerRect.width - 40)}px`;
+            entity.style.top = `${Math.random() * (containerRect.height - 40)}px`;
+            elements.container.appendChild(entity);
+            setTimeout(() => entity.remove(), className === 'fish' ? 2000 : 3000);
+        };
+
+        const startGame = async () => {
+            const fishInterval = setInterval(() => spawnEntity('fish'), 1000);
+            const voidInterval = setInterval(() => spawnEntity('void'), 2000);
+            
+            await new Promise(resolve => setTimeout(resolve, 30000));
+            clearInterval(fishInterval);
+            clearInterval(voidInterval);
+            endGame();
+        };
+
+        const endGame = () => {
+            gameState.gameActive = false;
+            gameState.balance += gameState.currentBet * (gameState.score / 5);
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+                localStorage.setItem('highScore', gameState.highScore);
+            }
+            updateScore();
+            document.querySelectorAll('.fish, .void').forEach(el => el.remove());
+        };
+
+        const handleMovement = (x, y) => {
+            if (!gameState.gameActive) return;
+            const rect = elements.container.getBoundingClientRect();
+            const catSize = 50;
+            
+            x = Math.max(0, Math.min(x - rect.left - catSize/2, rect.width - catSize));
+            y = Math.max(0, Math.min(y - rect.top - catSize/2, rect.height - catSize));
+            
+            elements.cat.style.left = `${x}px`;
+            elements.cat.style.top = `${y}px`;
+            
+            checkCollisions();
+        };
+
+        const checkCollisions = () => {
+            const catRect = elements.cat.getBoundingClientRect();
+            
+            document.querySelectorAll('.fish').forEach(fish => {
+                if (isColliding(catRect, fish.getBoundingClientRect())) {
+                    fish.remove();
+                    gameState.score++;
+                    updateScore();
+                }
+            });
+            
+            document.querySelectorAll('.void').forEach(void => {
+                if (isColliding(catRect, void.getBoundingClientRect())) {
+                    endGame();
+                }
+            });
+        };
+
+        const isColliding = (rect1, rect2) => {
+            return !(rect1.right < rect2.left || 
+                    rect1.left > rect2.right || 
+                    rect1.bottom < rect2.top || 
+                    rect1.top > rect2.bottom);
+        };
+
+        elements.container.addEventListener('mousemove', (e) => handleMovement(e.clientX, e.clientY));
+        elements.container.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            handleMovement(touch.clientX, touch.clientY);
+        });
+
+        updateScore();
+    </script>
+</body>
+</html>
