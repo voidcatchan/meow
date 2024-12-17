@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <meta property="og:title" content="VoidCat">
+    <meta property="og:description" content="A cyberpunk cat racing game where you bet tokens on your favorite feline">
+    <meta property="og:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@func_voidcat">
+    <meta name="twitter:title" content="VoidCat">
+    <meta name="twitter:description" content="A cyberpunk cat racing game where you bet tokens on your favorite feline">
+    <meta name="twitter:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <title>Neko Laser Race</title>
+    <style>
+        :root {
+            --primary: #FFD700;
+            --background: #0a0a0a;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --accent: #FF6B6B;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--background);
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+        }
+        #gameCanvas {
+            width: 100%;
+            height: auto;
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+        .ui-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            z-index: 100;
+        }
+        .token-display {
+            font-size: 1.2em;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        .bet-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--primary);
+            color: #fff;
+            padding: 8px;
+            border-radius: 5px;
+            width: 100px;
+            margin-bottom: 15px;
+        }
+        .cat-button {
+            background: var(--card-bg);
+            color: #fff;
+            border: 1px solid var(--primary);
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .cat-button:hover {
+            background: var(--primary);
+            color: var(--background);
+        }
+        .cat-button.selected {
+            background: var(--primary);
+            color: var(--background);
+        }
+        .start-button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        #logo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            transition: transform 0.3s ease;
+        }
+        #logo:hover {
+            transform: scale(1.1);
+        }
+        .how-to-play {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 15px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            max-width: 300px;
+            font-size: 0.9em;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        @media (max-width: 768px) {
+            .ui-panel {
+                position: relative;
+                top: 0;
+                left: 0;
+                margin-bottom: 20px;
+            }
+            .how-to-play {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="1200" height="600"></canvas>
+        <div class="ui-panel">
+            <div class="token-display">🐟 Fish Tokens: <span id="tokens">100</span></div>
+            <input type="number" id="betAmount" class="bet-input" value="10" min="1">
+            <div class="cat-buttons">
+                <button class="cat-button" onclick="selectCat(0)">Neon Cat</button>
+                <button class="cat-button" onclick="selectCat(1)">Cyber Cat</button>
+                <button class="cat-button" onclick="selectCat(2)">Ghost Cat</button>
+            </div>
+            <button class="start-button" onclick="startRace()">START RACE!</button>
+        </div>
+        <div class="how-to-play">
+            HOW TO PLAY:
+            1. Select your cat
+            2. Place your bet
+            3. Win x3 your bet if your cat wins!
+        </div>
+    </div>
+    <img id="logo" src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" alt="VoidCat">
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let tokens = 100;
+        let selectedCat = -1;
+        let racing = false;
+        let cats = [];
+        let leaderboard = [];
+
+        class Cat {
+            constructor(y, color, name) {
+                this.x = 50;
+                this.y = y;
+                this.color = color;
+                this.name = name;
+                this.speed = 0;
+                this.acceleration = 0;
+                this.wins = 0;
+            }
+            
+            update() {
+                if (racing) {
+                    this.acceleration = Math.random() * 0.5 - 0.2;
+                    this.speed = Math.max(0, Math.min(8, this.speed + this.acceleration));
+                    this.x += this.speed;
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, 25, 20, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Glow effect
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Name tag
+                ctx.fillStyle = '#fff';
+                ctx.font = '16px Segoe UI';
+                ctx.fillText(this.name, this.x - 30, this.y - 30);
+            }
+        }
+
+        function init() {
+            cats = [
+                new Cat(150, '#FF6B6B', 'Neon Cat'),
+                new Cat(300, '#4ECDC4', 'Cyber Cat'),
+                new Cat(450, '#95A5A6', 'Ghost Cat')
+            ];
+            
+            // Make canvas responsive
+            function resizeCanvas() {
+                const container = document.querySelector('.game-container');
+                canvas.style.width = '100%';
+                canvas.style.height = 'auto';
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        }
+
+        function selectCat(index) {
+            selectedCat = index;
+            document.querySelectorAll('.cat-button').forEach((btn, i) => {
+                btn.classList.toggle('selected', i === index);
+            });
+        }
+
+        async function startRace() {
+            if (selectedCat === -1 || racing) return;
+            
+            const bet = parseInt(document.getElementById('betAmount').value);
+            if (bet > tokens || bet < 1) {
+                alert('Invalid bet amount!');
+                return;
+            }
+            
+            tokens -= bet;
+            racing = true;
+            cats.forEach(cat => {
+                cat.x = 50;
+                cat.speed = 0;
+            });
+            
+            document.getElementById('tokens').textContent = tokens;
+        }
+
+        function drawTrack() {
+            // Track background
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#1a1a1a');
+            gradient.addColorStop(1, '#2a2a2a');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid effect
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.1)';
+            ctx.beginPath();
+            for(let i = 0; i < canvas.width; i += 50) {
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+            }
+            for(let i = 0; i < canvas.height; i += 50) {
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+            }
+            ctx.stroke();
+            
+            // Finish line
+            ctx.strokeStyle = '#FFD700';
+            ctx.setLineDash([10, 10]);
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(1000, 0);
+            ctx.lineTo(1000, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.lineWidth = 1;
+        }
+
+        function gameLoop() {
+            drawTrack();
+            
+            cats.forEach(cat => {
+                cat.update();
+                cat.draw();
+                
+                if (racing && cat.x >= 1000) {
+                    racing = false;
+                    if (cats.indexOf(cat) === selectedCat) {
+                        const winAmount = parseInt(document.getElementById('betAmount').value) * 3;
+                        tokens += winAmount;
+                        document.getElementById('tokens').textContent = tokens;
+                        cat.wins++;
+                        setTimeout(() => alert(`${cat.name} wins! You earned ${winAmount} tokens!`), 100);
+                    }
+                }
+            });
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        init();
+        gameLoop();
+    </script>
+</body>
+</html>
