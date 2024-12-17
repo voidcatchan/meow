@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <meta property="og:title" content="VoidCat">
+    <meta property="og:description" content="Spin the Neko Fortune Wheel and test your luck!">
+    <meta property="og:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@func_voidcat">
+    <meta name="twitter:title" content="VoidCat">
+    <meta name="twitter:description" content="Spin the Neko Fortune Wheel and test your luck!">
+    <meta name="twitter:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <title>Neko Fortune Wheel by VoidCat</title>
+    <style>
+        :root {
+            --primary: #ffd700;
+            --bg-dark: #0a0a0a;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .game-container {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        #wheel {
+            width: min(300px, 80vw);
+            height: min(300px, 80vw);
+            border-radius: 50%;
+            position: relative;
+            border: 2px solid var(--primary);
+            margin: 20px auto;
+            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+        .cat-segment {
+            position: absolute;
+            width: 50%;
+            height: 2px;
+            background: var(--primary);
+            left: 50%;
+            top: 50%;
+            transform-origin: left;
+        }
+        .controls {
+            display: grid;
+            gap: 15px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+        button {
+            background: var(--primary);
+            color: var(--bg-dark);
+            border: none;
+            padding: 15px 30px;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: transform 0.2s;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        input, select {
+            background: var(--glass);
+            color: #fff;
+            border: 1px solid var(--primary);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        .logo {
+            width: 50px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            transition: transform 0.3s;
+        }
+        .logo:hover {
+            transform: scale(1.1);
+        }
+        #result {
+            min-height: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        .how-to-play {
+            background: var(--glass);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        @media (max-width: 480px) {
+            .controls {
+                gap: 10px;
+            }
+            input, select, button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <img src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" class="logo" alt="VoidCat Logo">
+    <div class="game-container">
+        <h1>Neko Fortune Wheel</h1>
+        <div class="stats">
+            <div>Balance: $<span id="balance">1000</span></div>
+            <div>High Score: $<span id="highScore">1000</span></div>
+        </div>
+        <div id="wheel"></div>
+        <div class="controls">
+            <input type="number" id="bet" min="1" value="10" placeholder="Bet amount">
+            <select id="catChoice">
+                <option value="0">Lucky Cat (2x)</option>
+                <option value="1">Sleepy Cat (3x)</option>
+                <option value="2">Void Cat (4x)</option>
+                <option value="3">Golden Cat (5x)</option>
+            </select>
+            <button id="spinButton" onclick="spin()">Spin!</button>
+        </div>
+        <p id="result"></p>
+        <div class="how-to-play">
+            <h3>How to Play:</h3>
+            <p>1. Enter your bet amount<br>
+               2. Choose your lucky cat<br>
+               3. Click spin and match your cat to win!<br>
+               Each cat has different multipliers (2x-5x)</p>
+        </div>
+    </div>
+
+    <script>
+        let balance = 1000;
+        let highScore = 1000;
+        let spinning = false;
+        const wheel = document.getElementById('wheel');
+        const spinButton = document.getElementById('spinButton');
+        const multipliers = [2, 3, 4, 5];
+        
+        const updateHighScore = () => {
+            if (balance > highScore) {
+                highScore = balance;
+                document.getElementById('highScore').textContent = highScore;
+                localStorage.setItem('nekoHighScore', highScore);
+            }
+        };
+
+        const loadHighScore = () => {
+            const saved = localStorage.getItem('nekoHighScore');
+            if (saved) {
+                highScore = parseInt(saved);
+                document.getElementById('highScore').textContent = highScore;
+            }
+        };
+
+        const createWheel = () => {
+            for (let i = 0; i < 4; i++) {
+                const line = document.createElement('div');
+                line.className = 'cat-segment';
+                line.style.transform = `rotate(${i * 90}deg)`;
+                wheel.appendChild(line);
+            }
+        };
+
+        const spin = async () => {
+            if (spinning) return;
+            
+            const betAmount = parseInt(document.getElementById('bet').value);
+            const choice = parseInt(document.getElementById('catChoice').value);
+            
+            if (betAmount > balance) {
+                document.getElementById('result').textContent = 'Insufficient balance nyā...';
+                return;
+            }
+            
+            spinning = true;
+            spinButton.disabled = true;
+            balance -= betAmount;
+            document.getElementById('balance').textContent = balance;
+            
+            const result = Math.floor(Math.random() * 4);
+            const spins = 5 * 360 + (result * 90);
+            
+            wheel.style.transform = `rotate(${spins}deg)`;
+            
+            await new Promise(resolve => setTimeout(resolve, 3100));
+            
+            spinning = false;
+            spinButton.disabled = false;
+            
+            if (result === choice) {
+                const winAmount = betAmount * multipliers[result];
+                balance += winAmount;
+                document.getElementById('result').textContent = 
+                    `You won ${winAmount} coins nyā~!`;
+            } else {
+                document.getElementById('result').textContent = 
+                    'Better luck next time nyā...';
+            }
+            
+            document.getElementById('balance').textContent = balance;
+            updateHighScore();
+        };
+
+        createWheel();
+        loadHighScore();
+    </script>
+</body>
+</html>
