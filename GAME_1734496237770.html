@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <meta property="og:title" content="VoidCat">
+    <meta property="og:description" content="Guide your digital cat through abstract space, collecting void orbs while avoiding glitch zones">
+    <meta property="og:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@func_voidcat">
+    <meta name="twitter:title" content="VoidCat">
+    <meta name="twitter:description" content="Guide your digital cat through abstract space, collecting void orbs while avoiding glitch zones">
+    <meta name="twitter:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <title>VoidCat's Void Runner</title>
+    <style>
+        :root {
+            --primary-color: #8a2be2;
+            --secondary-color: #4b0082;
+            --background-color: #0a0a0a;
+            --text-color: #fff;
+            --danger-color: #ff3333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--background-color);
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.2);
+        }
+
+        canvas {
+            border-radius: 10px;
+            border: 2px solid rgba(138, 43, 226, 0.3);
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 16px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+        }
+
+        .logo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            transition: transform 0.3s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.1);
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        @media (max-width: 850px) {
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+        }
+
+        .touch-controls {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .touch-controls {
+                display: flex;
+            }
+        }
+
+        .touch-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(138, 43, 226, 0.3);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .touch-btn:active {
+            background: rgba(138, 43, 226, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="stats">
+            Score: <span id="score">0</span><br>
+            High Score: <span id="highScore">0</span>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <img class="logo" src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" alt="VoidCat">
+        <div class="controls">
+            Use WASD or Arrow Keys to move<br>
+            Collect purple orbs, avoid red zones
+        </div>
+        <div class="touch-controls">
+            <button class="touch-btn" id="leftBtn">←</button>
+            <button class="touch-btn" id="rightBtn">→</button>
+            <button class="touch-btn" id="upBtn">↑</button>
+            <button class="touch-btn" id="downBtn">↓</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const resizeCanvas = () => {
+            const container = document.querySelector('.game-container');
+            const maxWidth = Math.min(800, window.innerWidth - 40);
+            const maxHeight = Math.min(600, window.innerHeight - 40);
+            
+            canvas.width = maxWidth;
+            canvas.height = maxHeight;
+            
+            player.x = canvas.width/2;
+            player.y = canvas.height/2;
+        };
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let score = 0;
+        let highScore = localStorage.getItem('highScore') || 0;
+        let gameLoop;
+        let player = {
+            x: canvas.width/2,
+            y: canvas.height/2,
+            size: 20,
+            speed: 5
+        };
+
+        let voidOrbs = [];
+        let glitchZones = [];
+        let keys = {};
+
+        const touchControls = {
+            leftBtn: document.getElementById('leftBtn'),
+            rightBtn: document.getElementById('rightBtn'),
+            upBtn: document.getElementById('upBtn'),
+            downBtn: document.getElementById('downBtn')
+        };
+
+        Object.entries(touchControls).forEach(([key, btn]) => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[key] = true;
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            });
+        });
+
+        const createVoidOrb = () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: 10,
+            pulseSize: 0,
+            pulseDir: 1
+        });
+
+        const createGlitchZone = () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: 30,
+            opacity: Math.random()
+        });
+
+        const init = () => {
+            score = 0;
+            voidOrbs = Array(5).fill().map(createVoidOrb);
+            glitchZones = Array(3).fill().map(createGlitchZone);
+            updateScore();
+        };
+
+        const updateScore = () => {
+            document.getElementById('score').textContent = score;
+            document.getElementById('highScore').textContent = highScore;
+        };
+
+        const drawPlayer = () => {
+            ctx.fillStyle = 'var(--primary-color)';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(player.x - 10, player.y - 10);
+            ctx.lineTo(player.x, player.y - 25);
+            ctx.lineTo(player.x + 10, player.y - 10);
+            ctx.fill();
+        };
+
+        const drawVoidOrbs = () => {
+            voidOrbs.forEach(orb => {
+                ctx.beginPath();
+                orb.pulseSize += 0.1 * orb.pulseDir;
+                if (orb.pulseSize > 2 || orb.pulseSize < 0) orb.pulseDir *= -1;
+                
+                ctx.arc(orb.x, orb.y, orb.size + orb.pulseSize, 0, Math.PI * 2);
+                ctx.fillStyle = 'var(--secondary-color)';
+                ctx.fill();
+            });
+        };
+
+        const drawGlitchZones = () => {
+            glitchZones.forEach(zone => {
+                zone.opacity = Math.sin(Date.now() / 1000) * 0.5 + 0.5;
+                ctx.beginPath();
+                ctx.arc(zone.x, zone.y, zone.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 0, 0, ${zone.opacity})`;
+                ctx.fill();
+            });
+        };
+
+        const checkCollisions = () => {
+            voidOrbs.forEach((orb, index) => {
+                const dx = player.x - orb.x;
+                const dy = player.y - orb.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.size + orb.size) {
+                    score += 10;
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem('highScore', highScore);
+                    }
+                    updateScore();
+                    voidOrbs[index] = createVoidOrb();
+                }
+            });
+
+            glitchZones.forEach(zone => {
+                const dx = player.x - zone.x;
+                const dy = player.y - zone.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.size + zone.size) {
+                    gameOver();
+                }
+            });
+        };
+
+        const gameOver = () => {
+            cancelAnimationFrame(gameLoop);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.font = '30px "Courier New"';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over - Click to restart', canvas.width/2, canvas.height/2);
+            canvas.addEventListener('click', startGame, {once: true});
+        };
+
+        const update = () => {
+            if (keys.ArrowLeft || keys.a || keys.leftBtn) player.x -= player.speed;
+            if (keys.ArrowRight || keys.d || keys.rightBtn) player.x += player.speed;
+            if (keys.ArrowUp || keys.w || keys.upBtn) player.y -= player.speed;
+            if (keys.ArrowDown || keys.s || keys.downBtn) player.y += player.speed;
+
+            player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x));
+            player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
+
+            ctx.fillStyle = 'var(--background-color)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawGlitchZones();
+            drawVoidOrbs();
+            drawPlayer();
+            checkCollisions();
+
+            gameLoop = requestAnimationFrame(update);
+        };
+
+        const startGame = () => {
+            init();
+            gameLoop = requestAnimationFrame(update);
+        };
+
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+        startGame();
+    </script>
+</body>
+</html>
