@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <meta property="og:title" content="VoidCat">
+    <meta property="og:description" content="Neko Racing - High-stakes cat racing game with laser pointers!">
+    <meta property="og:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@func_voidcat">
+    <meta name="twitter:title" content="VoidCat">
+    <meta name="twitter:description" content="Neko Racing - High-stakes cat racing game with laser pointers!">
+    <meta name="twitter:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <title>Neko Racing</title>
+    <style>
+        :root {
+            --primary: #FFD700;
+            --bg-dark: #0a0a0a;
+            --bg-light: #1a1a1a;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #game-container {
+            width: min(800px, 95vw);
+            height: 400px;
+            border: 2px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-light);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .cat {
+            width: 50px;
+            height: 30px;
+            position: absolute;
+            border-radius: 15px;
+            transition: left 0.1s linear;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .laser {
+            width: 6px;
+            height: 6px;
+            background: #ff0000;
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ff0000;
+        }
+
+        #controls {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            width: min(800px, 95vw);
+        }
+
+        button {
+            background: var(--glass);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 1rem;
+            cursor: pointer;
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+
+        #stats {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--glass);
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--primary);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 2rem;
+            animation: pulse 2s infinite;
+        }
+
+        #leaderboard {
+            margin-top: 2rem;
+            width: min(800px, 95vw);
+            background: var(--glass);
+            padding: 1rem;
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 600px) {
+            #game-container {
+                height: 300px;
+            }
+            
+            button {
+                font-size: 0.9rem;
+                padding: 0.8rem;
+            }
+        }
+
+        #how-to-play {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--glass);
+            border-radius: 5px;
+            width: min(800px, 95vw);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <img src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" class="logo" alt="Neko Racing Logo">
+    <div id="game-container"></div>
+    <div id="controls">
+        <button onclick="placeBet(0)">Bet on Gray Cat (2x)</button>
+        <button onclick="placeBet(1)">Bet on Black Cat (3x)</button>
+        <button onclick="placeBet(2)">Bet on White Cat (4x)</button>
+        <button onclick="startRace()">Start Race!</button>
+    </div>
+    <div id="stats">
+        Credits: <span id="credits">1000</span>
+    </div>
+    <div id="leaderboard">
+        <h3>Top Scores</h3>
+        <div id="scores"></div>
+    </div>
+    <div id="how-to-play">
+        <h3>How to Play</h3>
+        <p>1. Place your bet on one of the cats (100 credits)</p>
+        <p>2. Click 'Start Race' to begin</p>
+        <p>3. Win multiplier depends on cat selection</p>
+    </div>
+
+    <script>
+        class Game {
+            constructor() {
+                this.credits = 1000;
+                this.cats = [];
+                this.currentBet = -1;
+                this.racing = false;
+                this.highScores = JSON.parse(localStorage.getItem('nekoScores')) || [];
+                this.init();
+            }
+
+            async init() {
+                const container = document.getElementById('game-container');
+                const colors = ['#777', '#333', '#fff'];
+                
+                for(let i = 0; i < 3; i++) {
+                    const cat = document.createElement('div');
+                    cat.className = 'cat';
+                    cat.style.top = `${50 + i * 100}px`;
+                    cat.style.left = '10px';
+                    cat.style.background = colors[i];
+                    container.appendChild(cat);
+                    this.cats.push({element: cat, position: 0, speed: 0});
+                }
+
+                this.updateLeaderboard();
+                this.addTouchSupport();
+            }
+
+            addTouchSupport() {
+                const container = document.getElementById('game-container');
+                container.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    const rect = container.getBoundingClientRect();
+                    const y = touch.clientY - rect.top;
+                    const catIndex = Math.floor(y / (container.offsetHeight / 3));
+                    if(catIndex >= 0 && catIndex < 3) this.placeBet(catIndex);
+                });
+            }
+
+            placeBet(catIndex) {
+                if(this.racing || this.credits < 100) return;
+                this.currentBet = catIndex;
+                this.credits -= 100;
+                this.updateStats();
+            }
+
+            async startRace() {
+                if(this.racing || this.currentBet === -1) return;
+                this.racing = true;
+
+                const animate = () => {
+                    if(!this.racing) return;
+                    
+                    let finished = false;
+                    this.cats.forEach((cat, index) => {
+                        cat.speed = Math.random() * 5;
+                        cat.position += cat.speed;
+                        cat.element.style.left = `${cat.position}px`;
+                        
+                        if(cat.position >= 700 && !finished) {
+                            finished = true;
+                            this.endRace(index);
+                        }
+                    });
+                    
+                    if(!finished) requestAnimationFrame(animate);
+                };
+                
+                animate();
+            }
+
+            async endRace(winner) {
+                this.racing = false;
+                if(winner === this.currentBet) {
+                    const winnings = 100 * (winner + 2);
+                    this.credits += winnings;
+                    this.updateHighScores(winnings);
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                this.cats.forEach(cat => {
+                    cat.position = 0;
+                    cat.element.style.left = '10px';
+                });
+                
+                this.currentBet = -1;
+                this.updateStats();
+            }
+
+            updateHighScores(score) {
+                this.highScores.push(score);
+                this.highScores.sort((a, b) => b - a);
+                this.highScores = this.highScores.slice(0, 5);
+                localStorage.setItem('nekoScores', JSON.stringify(this.highScores));
+                this.updateLeaderboard();
+            }
+
+            updateLeaderboard() {
+                const scoresDiv = document.getElementById('scores');
+                scoresDiv.innerHTML = this.highScores
+                    .map((score, index) => `<p>${index + 1}. ${score} credits</p>`)
+                    .join('');
+            }
+
+            updateStats() {
+                document.getElementById('credits').textContent = this.credits;
+            }
+        }
+
+        const game = new Game();
+
+        function placeBet(index) { game.placeBet(index); }
+        function startRace() { game.startRace(); }
+    </script>
+</body>
+</html>
