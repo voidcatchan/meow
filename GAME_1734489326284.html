@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <meta property="og:title" content="VoidCat">
+    <meta property="og:description" content="Exciting neko racing game with laser cats">
+    <meta property="og:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@func_voidcat">
+    <meta name="twitter:title" content="VoidCat">
+    <meta name="twitter:description" content="Exciting neko racing game with laser cats">
+    <meta name="twitter:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <title>Neko Laser Race</title>
+    <style>
+        :root {
+            --primary: #FFD700;
+            --bg-dark: #0a0a0a;
+            --text-light: #fff;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+        }
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        body {
+            background: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .game-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        #gameCanvas {
+            border-radius: 15px;
+            border: 2px solid var(--primary);
+            margin: 20px 0;
+            max-width: 100%;
+            height: auto;
+        }
+        .controls {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            width: 100%;
+            max-width: 800px;
+        }
+        button {
+            background: var(--glass-bg);
+            color: var(--text-light);
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+        button.selected {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+        #betAmount {
+            background: var(--glass-bg);
+            color: var(--text-light);
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 16px;
+            width: 100%;
+        }
+        #balance {
+            color: var(--primary);
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .leaderboard {
+            background: var(--glass-bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            #gameCanvas {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <img src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" width="50" height="50" alt="Neko">
+        <h1>Neko Laser Race にゃー</h1>
+        <div id="balance">Balance: 1000 coins</div>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <div class="controls">
+            <button onclick="selectCat(0)">Tama (2x)</button>
+            <button onclick="selectCat(1)">Mochi (3x)</button>
+            <button onclick="selectCat(2)">Kuro (4x)</button>
+            <input type="number" id="betAmount" value="100" min="10" max="1000">
+            <button onclick="startRace()" id="startButton">Start Race!</button>
+        </div>
+        <div class="leaderboard">
+            <h2>Top Winners</h2>
+            <div id="leaderboardList"></div>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let balance = 1000;
+        let selectedCat = -1;
+        let cats = [];
+        let raceInProgress = false;
+        let leaderboard = [];
+
+        class Cat {
+            constructor(y, speed, color, name) {
+                this.x = 50;
+                this.y = y;
+                this.baseSpeed = speed;
+                this.color = color;
+                this.name = name;
+                this.trail = [];
+            }
+            
+            update() {
+                this.trail.push({x: this.x, y: this.y});
+                if (this.trail.length > 10) this.trail.shift();
+                this.x += this.baseSpeed * (Math.random() * 2);
+            }
+
+            draw() {
+                this.trail.forEach((pos, i) => {
+                    ctx.fillStyle = this.color;
+                    ctx.globalAlpha = i / 10;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initCats() {
+            cats = [
+                new Cat(100, 2, '#FFD700', 'Tama'),
+                new Cat(200, 1.8, '#FFF', 'Mochi'),
+                new Cat(300, 1.5, '#7F00FF', 'Kuro')
+            ];
+        }
+
+        function selectCat(index) {
+            selectedCat = index;
+            document.querySelectorAll('.controls button').forEach((btn, i) => {
+                if (i < 3) btn.classList.toggle('selected', i === index);
+            });
+        }
+
+        async function startRace() {
+            if (raceInProgress || selectedCat === -1) return;
+            const bet = parseInt(document.getElementById('betAmount').value);
+            if (bet > balance) return;
+            
+            balance -= bet;
+            document.getElementById('balance').textContent = `Balance: ${balance} coins`;
+            raceInProgress = true;
+            document.getElementById('startButton').disabled = true;
+            initCats();
+            
+            return new Promise(resolve => {
+                const raceInterval = setInterval(() => {
+                    ctx.fillStyle = '#0a0a0a';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    let finished = false;
+                    cats.forEach((cat, i) => {
+                        cat.update();
+                        cat.draw();
+                        if (cat.x >= canvas.width - 20) {
+                            finished = true;
+                            clearInterval(raceInterval);
+                            raceInProgress = false;
+                            document.getElementById('startButton').disabled = false;
+                            if (i === selectedCat) {
+                                const multiplier = 4 - i;
+                                const winnings = bet * multiplier;
+                                balance += winnings;
+                                updateLeaderboard(winnings);
+                                document.getElementById('balance').textContent = 
+                                    `Balance: ${balance} coins`;
+                            }
+                            resolve();
+                        }
+                    });
+                }, 50);
+            });
+        }
+
+        function updateLeaderboard(winnings) {
+            leaderboard.push({
+                cat: cats[selectedCat].name,
+                winnings: winnings,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            leaderboard.sort((a, b) => b.winnings - a.winnings);
+            leaderboard = leaderboard.slice(0, 5);
+            
+            const leaderboardHtml = leaderboard.map(entry => 
+                `<div>${entry.timestamp} - ${entry.cat}: ${entry.winnings} coins</div>`
+            ).join('');
+            document.getElementById('leaderboardList').innerHTML = leaderboardHtml;
+        }
+
+        initCats();
+
+        // Mobile touch support
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const y = touch.clientY - rect.top;
+            const catIndex = Math.floor(y / (canvas.height / 3));
+            if (catIndex >= 0 && catIndex < 3) selectCat(catIndex);
+        });
+    </script>
+</body>
+</html>
