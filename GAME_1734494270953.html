@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <link rel="apple-touch-icon" href="https://bafkreihwkz3exhroqifa5e7b3ngdrq535zj63oidii3hkkbqeeuyz7zdx4.ipfs.dweb.link/">
+    <meta property="og:title" content="VoidCat">
+    <meta property="og:description" content="A thrilling cat racing game where you bet on your favorite neko">
+    <meta property="og:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@func_voidcat">
+    <meta name="twitter:title" content="VoidCat">
+    <meta name="twitter:description" content="A thrilling cat racing game where you bet on your favorite neko">
+    <meta name="twitter:image" content="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/">
+    <title>Neko Race</title>
+    <style>
+        :root {
+            --primary: #FFD700;
+            --bg-dark: #0a0a0a;
+            --bg-light: #1a1a1a;
+            --text: #ffffff;
+        }
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .glass {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #game-container {
+            width: min(800px, 95vw);
+            height: 400px;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-light);
+            box-shadow: 0 0 30px rgba(255,215,0,0.1);
+        }
+        .cat {
+            width: 50px;
+            height: 30px;
+            position: absolute;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 30"><path fill="%23FFD700" d="M10,20 Q20,5 30,20 Q40,35 50,20 L50,30 L0,30 L0,20 Q5,35 10,20"/></svg>');
+            transition: left 0.1s linear;
+        }
+        .fish {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            right: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary);
+        }
+        #controls {
+            margin-top: 20px;
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button, input, select {
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: var(--primary);
+            color: var(--bg-dark);
+            cursor: pointer;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        #logo {
+            width: 50px;
+            height: 50px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            transition: transform 0.3s ease;
+        }
+        #logo:hover {
+            transform: scale(1.1);
+        }
+        #leaderboard {
+            margin-top: 20px;
+            padding: 15px;
+            max-width: 300px;
+        }
+        .how-to-play {
+            margin-top: 20px;
+            padding: 15px;
+            max-width: 600px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            #controls {
+                flex-direction: column;
+            }
+            button, input, select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Neko Race nyā~</h1>
+    <div id="game-container" class="glass">
+        <img id="logo" src="https://bafkreiflpn5ldns6v7qoea7fs2bo56o3kbs6wb3c233mwdmlrn7jgpf5xy.ipfs.dweb.link/" alt="VoidCat">
+    </div>
+    <div id="controls" class="glass">
+        <input type="number" id="bet" min="1" max="100" value="10" step="1">
+        <select id="cat-select">
+            <option value="0">Neko 1</option>
+            <option value="1">Neko 2</option>
+            <option value="2">Neko 3</option>
+        </select>
+        <button onclick="startRace()">Place Bet</button>
+        <span>Credits: <span id="credits">100</span></span>
+    </div>
+    <div id="leaderboard" class="glass">
+        <h3>Top Winners</h3>
+        <div id="top-scores"></div>
+    </div>
+    <div class="how-to-play glass">
+        <h3>How to Play</h3>
+        <p>Select your favorite neko, place your bet, and watch them race! Win 3x your bet if your neko finishes first.</p>
+    </div>
+    <script>
+        let credits = parseInt(localStorage.getItem('credits')) || 100;
+        let racing = false;
+        let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+        const cats = [];
+        
+        const updateLeaderboard = () => {
+            const leaderboardEl = document.getElementById('top-scores');
+            const sortedScores = highScores.sort((a, b) => b.credits - a.credits).slice(0, 5);
+            leaderboardEl.innerHTML = sortedScores.map(score => 
+                `<div>${score.date}: ${score.credits} credits</div>`
+            ).join('');
+        };
+
+        const saveScore = () => {
+            highScores.push({
+                date: new Date().toLocaleDateString(),
+                credits: credits
+            });
+            localStorage.setItem('highScores', JSON.stringify(highScores));
+            localStorage.setItem('credits', credits);
+            updateLeaderboard();
+        };
+
+        const initGame = () => {
+            const container = document.getElementById('game-container');
+            document.getElementById('credits').textContent = credits;
+            
+            for(let i = 0; i < 3; i++) {
+                const cat = document.createElement('div');
+                cat.className = 'cat';
+                cat.style.left = '0px';
+                cat.style.top = (i * 120 + 60) + 'px';
+                container.appendChild(cat);
+                cats.push({
+                    element: cat,
+                    position: 0,
+                    speed: 0
+                });
+            }
+            
+            const fish = document.createElement('div');
+            fish.className = 'fish';
+            fish.style.top = '190px';
+            container.appendChild(fish);
+            
+            updateLeaderboard();
+        };
+
+        const startRace = async () => {
+            if(racing) return;
+            
+            const bet = parseInt(document.getElementById('bet').value);
+            const selectedCat = parseInt(document.getElementById('cat-select').value);
+            
+            if(bet > credits) {
+                alert('Not enough credits!');
+                return;
+            }
+            
+            credits -= bet;
+            document.getElementById('credits').textContent = credits;
+            racing = true;
+
+            cats.forEach(cat => {
+                cat.position = 0;
+                cat.speed = 2 + Math.random() * 2;
+                cat.element.style.left = '0px';
+            });
+
+            return new Promise((resolve) => {
+                const raceInterval = setInterval(() => {
+                    let finished = false;
+                    cats.forEach((cat, index) => {
+                        cat.position += cat.speed;
+                        cat.element.style.left = cat.position + 'px';
+                        
+                        if(cat.position >= 700 && !finished) {
+                            clearInterval(raceInterval);
+                            racing = false;
+                            if(index === selectedCat) {
+                                credits += bet * 3;
+                                alert('You won! Nyā~');
+                            } else {
+                                alert('Better luck next time!');
+                            }
+                            document.getElementById('credits').textContent = credits;
+                            saveScore();
+                            finished = true;
+                            resolve();
+                        }
+                    });
+                }, 50);
+            });
+        };
+
+        initGame();
+    </script>
+</body>
+</html>
